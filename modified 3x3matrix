@@ -1,0 +1,138 @@
+
+close all;
+clear all;
+% im = hdrimread('Bottles_Small.hdr');
+% im = hdrimread('CS_Warwick.hdr');
+im = hdrimread('bistro_01_000295.hdr');
+
+
+luminance = lum(im);
+
+figure('Name', 'Original Image'),imshow(im);
+figure('Name', 'luminance'),imshow(luminance);
+
+edge_mask = edge(luminance, 'canny');
+
+figure('Name', 'canny edge'),imshow(edge_mask);
+
+
+[Row Col RGB]=size(im);
+
+Frame1= zeros(Row,Col,1);
+Frame2= zeros(Row,Col,RGB);
+Frame3= zeros(Row,Col,RGB);
+
+counter1=0;
+counter2=0;
+counter3=0;
+
+% 3x3 masking of the edge 
+  for j=1:Col-2    
+    for i=1:Row-2
+        if((edge_mask(i,j) == 1))
+            counter3=counter3+1;
+            if((edge_mask(i,j+1) == 1)|(edge_mask(i+1,j) == 1)|(edge_mask(i+1,j+1) == 1))
+                 
+             Frame1(i,j)=1;
+             Frame1(i,j+1)=1;
+             Frame1(i,j+2)=1;
+             
+             Frame1(i+1,j)=1;
+             Frame1(i+1,j+1)=1;
+             Frame1(i+1,j+2)=1;
+             
+             Frame1(i+2,j)=1;
+             Frame1(i+2,j+1)=1;
+             Frame1(i+2,j+1)=1;
+             
+             counter1=counter1+1;
+             
+             else
+             Frame1(i,j)=0;
+             
+             counter2=counter2+1;
+            end
+        end 
+    end
+  end
+  
+    for j=Col-1:Col    
+       for i=1:Row
+             Frame1(i,j)=edge_mask(i,j); 
+       end
+    end
+    
+     for j=1:Col    
+         for i=Row-1:Row
+             Frame1(i,j)=edge_mask(i,j);      
+          end
+     end
+          
+
+figure('Name', 'sectored Image'),imshow(Frame1);
+
+%   counter2=0;
+%    for j=1:Col    
+%     for i=1:Row
+%         
+%              if(Frame1(i, j) == 1)
+%                  counter2=counter2+1;
+%              end
+%     end 
+%    end 
+%   counter1=0;
+%    for j=1:Col    
+%     for i=1:Row
+%         
+%              if(edge_mask(i, j) == 1)
+%                  counter1=counter1+1;
+%              end
+%     end 
+%    end 
+   
+iCAM_img = iCAM06_HDR(im, 20000, 0.7, 1);
+iCAM_img = double(iCAM_img)/255.0;
+ward_img = WardHistAdjTMO(im);
+
+figure('Name', 'iCam'),imshow(iCAM_img);
+figure('Name', 'ward'),imshow(ward_img);
+
+
+   for j=1:Col    
+    for i=1:Row
+        
+             if(Frame1(i,j) == 1)
+                 
+             Frame2(i,j,:)=iCAM_img(i,j,:);
+             
+             else
+             
+             Frame2(i,j,:)=ward_img(i,j,:);
+           
+             end
+    end 
+   end 
+
+
+    
+figure('Name', 'sectored Image'),imshow(Frame1);
+figure('Name', 'Hybrid Image'),imshow(Frame2);
+luminance2=lum(Frame2);
+     
+figure('Name', 'luminance of Hybrid image'), imshow(luminance2);
+
+edge_weight=0.25;
+
+ for j=1:Col
+    for i=1:Row
+        if (luminance2(i,j) == 1)
+            imageOut(i,j,:) = edge_weight*iCAM_img(i,j,:) + (1-edge_weight)*ward_img(i,j,:);
+        else
+            imageOut(i,j,:) = edge_weight*ward_img(i,j,:) + (1-edge_weight)*iCAM_img(i,j,:);
+        end
+    end
+end
+
+figure('Name', 'luminance of Hybrid image'), imshow(imageOut);
+
+   
